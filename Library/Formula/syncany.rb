@@ -25,21 +25,6 @@ class Syncany < Formula
     bin.install_symlink Dir["#{libexec}/bin/sy"]
   end
 
-  def caveats; <<-EOS.undent
-    Requires Java 1.7.0 or greater.
-
-    The 'syncany' script is identical to the 'sy' script and as such has not
-    been installed.
-
-    You may want to add the following to your environment:
-
-      alias syncany=sy
-
-    For more details:
-      http://syncany.readthedocs.org/en/latest/
-    EOS
-  end
-
   test do
     system "#{bin}/sy", "-vv"
   end
