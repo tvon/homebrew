@@ -26,6 +26,65 @@ class Syncany < Formula
   end
 
   test do
-    system "#{bin}/sy", "-vv"
+    require 'open3'
+    require 'expect'
+
+    source, target, repo = 'source', 'target', 'repo'
+
+    [source, target, repo].each { |p| mkdir(p) }
+
+    options = "-P local -o path=../#{repo}"
+
+    commands = {
+      :init => "#{bin}/sy init #{options}",
+      :up => "#{bin}/sy up",
+      :connect => "#{bin}/sy connect #{options}",
+      :down => "#{bin}/sy down"
+    }
+
+    password = "password-123"
+    test_data, test_file = 'Howdy, howdy, howdy.', 'README.txt'
+    timeout = 5
+
+    Dir.chdir(source) do
+      puts "-- Initializing #{source}"
+      Open3.popen3(commands[:init]) do |i, o, _, _|
+        o.sync = true
+        i.sync = true
+
+        o.expect("Password (min. 10 chars):", timeout) do |result|
+          i.puts "#{password}\n"
+        end
+
+        o.expect("Confirm:", timeout) do |result|
+          i.puts "#{password}\n"
+        end
+      end
+
+      puts "-- Creating test file"
+      File.open(test_file, "w") { |f| f << test_data }
+
+      puts "-- Syncing #{source}"
+      Open3.popen3(commands[:up]) { }
+
+    end
+
+    Dir.chdir(target) do
+      puts "-- Connecting #{target}"
+      Open3.popen3(commands[:connect]) do |i, o, _, _|
+        o.sync = true
+        i.sync = true
+
+        o.expect("Password:", timeout) do |result|
+          i.puts "#{password}\n"
+        end
+      end
+
+      puts "-- Syncing #{target}"
+      Open3.popen3(commands[:down]) { }
+
+      puts "-- Verifying test file"
+      raise "Syncany test failed" unless File.read(test_file) == test_data
+    end
   end
 end
